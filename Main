@@ -1,0 +1,496 @@
+import java.util.ArrayList;
+import java.util.Scanner;
+import java.io.*;
+
+// ABSTRACT CLASS
+abstract class User {
+    protected String name;
+
+    public User(String name) {
+        this.name = name;
+    }
+
+    public abstract void dashboard();
+}
+
+// CHEF CLASS
+class Chef extends User {
+
+    public Chef(String name) {
+        super(name);
+    }
+
+    @Override
+    public void dashboard() {
+        System.out.println("\n===== CHEF DASHBOARD =====");
+        System.out.println("1. Add Dish");
+        System.out.println("2. Update Dish");
+        System.out.println("3. Delete Dish");
+        System.out.println("4. View All Dishes");
+        System.out.println("5. View Student Attendance & Orders");
+        System.out.println("6. Exit to Main Menu");
+    }
+}
+
+// STUDENT CLASS
+class Student extends User {
+    private boolean isPresent;
+    private ArrayList<String> selectedDishes; // Har student ki apni selected dishes
+
+    public Student(String name) {
+        super(name);
+        this.isPresent = true;
+        this.selectedDishes = new ArrayList<>();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public boolean isPresent() {
+        return isPresent;
+    }
+
+    public void addDishToOrder(String dishName) {
+        this.selectedDishes.add(dishName);
+    }
+
+    public ArrayList<String> getSelectedDishes() {
+        return selectedDishes;
+    }
+
+    @Override
+    public void dashboard() {
+        System.out.println("\n===== STUDENT DASHBOARD (Welcome: " + name + ") =====");
+        System.out.println("1. Breakfast Menu");
+        System.out.println("2. Lunch Menu");
+        System.out.println("3. Dinner Menu");
+        System.out.println("4. Exit to Main Menu");
+    }
+}
+
+// ENCAPSULATION CLASS
+class Dish {
+    private int id;
+    private String mealType;
+    private String dishName;
+
+    public Dish(int id, String mealType, String dishName) {
+        this.id = id;
+        this.mealType = mealType;
+        this.dishName = dishName;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getMealType() {
+        return mealType;
+    }
+
+    public String getDishName() {
+        return dishName;
+    }
+
+    public void setMealType(String mealType) {
+        this.mealType = mealType;
+    }
+
+    public void setDishName(String dishName) {
+        this.dishName = dishName;
+    }
+}
+
+// MAIN CLASS
+public class Main {
+
+    static Scanner sc = new Scanner(System.in);
+    static ArrayList<Dish> dishes = new ArrayList<>();
+    static ArrayList<Student> studentList = new ArrayList<>();
+
+    // ===== FILE HANDLING CONFIG =====
+    static final String DISH_FILE = "dishes.txt";
+    static final String STUDENT_FILE = "students.txt";
+
+    // Crash-proof integer input handler
+    public static int readInt(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            if (sc.hasNextInt()) {
+                int value = sc.nextInt();
+                sc.nextLine(); // Clear buffer
+                return value;
+            } else {
+                System.out.println("Invalid Input! Please enter a valid number.");
+                sc.next();
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        // Program start hote hi purana saved data files se load kar lo
+        loadDishes();
+        loadStudents();
+
+        while (true) {
+            System.out.println("\n=====  CAFETERIA SYSTEM =====");
+            System.out.println("1. Chef Login");
+            System.out.println("2. Student Login");
+            System.out.println("3. Exit System");
+
+            int choice = readInt("Enter Choice: ");
+
+            switch (choice) {
+                case 1:
+                    chefMenu();
+                    break;
+                case 2:
+                    studentMenu();
+                    break;
+                case 3:
+                    // Exit se pehle latest data files me save kar do
+                    saveDishes();
+                    saveStudents();
+                    System.out.println("Thank you for using Cafeteria System. Good Bye!");
+                    System.exit(0);
+                default:
+                    System.out.println("Invalid Choice! Please select 1, 2, or 3.");
+            }
+        }
+    }
+
+    // CHEF MENU LOGIC
+    public static void chefMenu() {
+        Chef chef = new Chef("Head Chef");
+
+        while (true) {
+            chef.dashboard();
+            int choice = readInt("Enter Choice: ");
+
+            switch (choice) {
+                case 1:
+                    addDish();
+                    break;
+                case 2:
+                    updateDish();
+                    break;
+                case 3:
+                    deleteDish();
+                    break;
+                case 4:
+                    viewDishes();
+                    break;
+                case 5:
+                    viewAttendanceAndOrders();
+                    break;
+                case 6:
+                    return; // Main menu me wapas jane k liye
+                default:
+                    System.out.println("Invalid Choice! Select between 1-6.");
+            }
+        }
+    }
+
+    // STUDENT MENU LOGIC
+    public static void studentMenu() {
+        System.out.print("Enter Student Name to Login: ");
+        String name = sc.nextLine().trim();
+
+        if (name.isEmpty()) {
+            System.out.println("Name cannot be empty!");
+            return;
+        }
+
+        // LOGICAL FIX: Pehle check karo kya yeh student pehle login kar chuka hai?
+        Student currentStudent = null;
+        for (Student s : studentList) {
+            if (s.getName().equalsIgnoreCase(name)) {
+                currentStudent = s; // Purana record mil gaya
+                break;
+            }
+        }
+
+        // Agar bilkul naya student hai, to hi list me add karo
+        if (currentStudent == null) {
+            currentStudent = new Student(name);
+            studentList.add(currentStudent);
+            saveStudents(); // Naye student ki attendance file me save
+            System.out.println("Welcome Naya Student! Attendance marked for " + name + ".");
+        } else {
+            System.out.println("Welcome Back " + name + "! Aapki attendance pehle se marked hai.");
+        }
+
+        while (true) {
+            currentStudent.dashboard();
+            int choice = readInt("Enter Choice: ");
+
+            switch (choice) {
+                case 1:
+                    showAndSelectMeal("Breakfast", currentStudent);
+                    break;
+                case 2:
+                    showAndSelectMeal("Lunch", currentStudent);
+                    break;
+                case 3:
+                    showAndSelectMeal("Dinner", currentStudent);
+                    break;
+                case 4:
+                    return; // Main menu me wapas jane k liye
+                default:
+                    System.out.println("Invalid Choice! Select between 1-4.");
+            }
+        }
+    }
+
+    // CHEF: ADD DISH
+    public static void addDish() {
+        int id = readInt("Enter Unique Dish ID: ");
+
+        // Check unique ID constraint
+        for (Dish d : dishes) {
+            if (d.getId() == id) {
+                System.out.println("Error: Dish with this ID already exists!");
+                return;
+            }
+        }
+
+        System.out.print("Enter Meal Type (Breakfast/Lunch/Dinner): ");
+        String meal = sc.nextLine().trim();
+
+        // Input validation for meal type
+        if (!meal.equalsIgnoreCase("Breakfast") && !meal.equalsIgnoreCase("Lunch") && !meal.equalsIgnoreCase("Dinner")) {
+            System.out.println("Invalid Meal Type! Please type Breakfast, Lunch, or Dinner.");
+            return;
+        }
+
+        System.out.print("Enter Dish Name: ");
+        String name = sc.nextLine().trim();
+
+        dishes.add(new Dish(id, meal, name));
+        saveDishes(); // File me turant save (CREATE operation)
+        System.out.println("Dish '" + name + "' Added Successfully to " + meal + "!");
+    }
+
+    // CHEF: UPDATE DISH
+    public static void updateDish() {
+        int id = readInt("Enter Dish ID to Update: ");
+
+        for (Dish d : dishes) {
+            if (d.getId() == id) {
+                System.out.print("Enter New Meal Type (Breakfast/Lunch/Dinner): ");
+                String meal = sc.nextLine().trim();
+
+                System.out.print("Enter New Dish Name: ");
+                String name = sc.nextLine().trim();
+
+                d.setMealType(meal);
+                d.setDishName(name);
+
+                saveDishes(); // File me turant save (UPDATE operation)
+                System.out.println("Dish Updated Successfully!");
+                return;
+            }
+        }
+        System.out.println("Dish Not Found!");
+    }
+
+    // CHEF: DELETE DISH
+    public static void deleteDish() {
+        int id = readInt("Enter Dish ID to Delete: ");
+
+        for (int i = 0; i < dishes.size(); i++) {
+            if (dishes.get(i).getId() == id) {
+                System.out.println("Dish '" + dishes.get(i).getDishName() + "' Deleted!");
+                dishes.remove(i);
+                saveDishes(); // File me turant save (DELETE operation)
+                return;
+            }
+        }
+        System.out.println("Dish Not Found!");
+    }
+
+    // CHEF: VIEW ALL DISHES
+    public static void viewDishes() {
+        if (dishes.isEmpty()) {
+            System.out.println("Cafeteria Menu is Empty! Please ask Chef to add dishes.");
+            return;
+        }
+
+        System.out.println("\n--- CURRENT CAFETERIA MENU ---");
+        for (Dish d : dishes) {
+            System.out.println("[" + d.getId() + "] " + d.getMealType() + " -> " + d.getDishName());
+        }
+    }
+
+    // LOGICAL FIX: STUDENT SPECIFIC MEAL SELECTION
+    public static void showAndSelectMeal(String mealType, Student student) {
+        System.out.println("\n--- " + mealType.toUpperCase() + " MENU ---");
+
+        // Sirf wahi dishes save hongi jo is category (e.g., Lunch) me available hain
+        ArrayList<Dish> availableDishesForThisMeal = new ArrayList<>();
+
+        for (Dish d : dishes) {
+            if (d.getMealType().equalsIgnoreCase(mealType)) {
+                System.out.println("ID: " + d.getId() + " | Dish Name: " + d.getDishName());
+                availableDishesForThisMeal.add(d);
+            }
+        }
+
+        if (availableDishesForThisMeal.isEmpty()) {
+            System.out.println("Sorry! No items available for " + mealType + " today.");
+            return;
+        }
+
+        // Student se saaf poocha jaye ke use kuch khana hai ya nahi
+        System.out.print("\nDo you want to select a dish from " + mealType + "? (yes/no): ");
+        String response = sc.nextLine().trim();
+
+        if (response.equalsIgnoreCase("yes")) {
+            int selectedId = readInt("Enter the exact Dish ID you want to eat: ");
+            boolean itemOrdered = false;
+
+            // Check karo ke entered ID sach me screen par dikhne wali dishes me se hai ya nahi
+            for (Dish d : availableDishesForThisMeal) {
+                if (d.getId() == selectedId) {
+                    student.addDishToOrder(d.getDishName()); // Student ke profile me secure save
+                    saveStudents(); // Order file me turant save
+                    System.out.println("Success! '" + d.getDishName() + "' has been added to your plate.");
+                    itemOrdered = true;
+                    break;
+                }
+            }
+
+            if (!itemOrdered) {
+                System.out.println("Invalid ID! Aap sirf upar di gayi list me se hi ID select kar sakte hain.");
+            }
+
+        } else if (response.equalsIgnoreCase("no")) {
+            System.out.println("No dish selected. Returning to your Dashboard.");
+        } else {
+            System.out.println("Invalid option! Please type 'yes' or 'no'.");
+        }
+    }
+
+    // CHEF: VIEW ATTENDANCE & ORDERS REPORT
+    public static void viewAttendanceAndOrders() {
+        System.out.println("\n===== CAFETERIA DAILY REPORT =====");
+        if (studentList.isEmpty()) {
+            System.out.println("No students have logged in today.");
+            return;
+        }
+
+        for (Student s : studentList) {
+            System.out.println("Student Name : " + s.getName());
+            System.out.println("Status       : Present");
+            System.out.print("Selected Food: ");
+            if (s.getSelectedDishes().isEmpty()) {
+                System.out.println("Nothing Selected (Skipped Meal)");
+            } else {
+                System.out.println(s.getSelectedDishes());
+            }
+            System.out.println("---------------------------------------------");
+        }
+    }
+
+    // ================== FILE HANDLING METHODS ==================
+
+    // Format per line: id,mealType,dishName
+    public static void saveDishes() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(DISH_FILE))) {
+            for (Dish d : dishes) {
+                bw.write(d.getId() + "," + d.getMealType() + "," + d.getDishName());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving dishes to file: " + e.getMessage());
+        }
+    }
+
+    public static void loadDishes() {
+        File file = new File(DISH_FILE);
+        if (!file.exists()) {
+            return; // Pehli dafa run ho raha hai, koi purana data nahi
+        }
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
+                String[] parts = line.split(",", 3);
+                if (parts.length == 3) {
+                    try {
+                        int id = Integer.parseInt(parts[0].trim());
+                        String mealType = parts[1].trim();
+                        String dishName = parts[2].trim();
+                        dishes.add(new Dish(id, mealType, dishName));
+                    } catch (NumberFormatException e) {
+                        // Corrupt line ko skip kar do, crash mat hone do
+                        continue;
+                    }
+                }
+            }
+            System.out.println("Loaded " + dishes.size() + " dish(es) from file.");
+        } catch (IOException e) {
+            System.out.println("Error loading dishes from file: " + e.getMessage());
+        }
+    }
+
+    // Format per line: name|dish1;dish2;dish3   (agar koi dish nahi to sirf name)
+    public static void saveStudents() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(STUDENT_FILE))) {
+            for (Student s : studentList) {
+                StringBuilder sb = new StringBuilder();
+                sb.append(s.getName()).append("|");
+
+                ArrayList<String> selected = s.getSelectedDishes();
+                for (int i = 0; i < selected.size(); i++) {
+                    sb.append(selected.get(i));
+                    if (i != selected.size() - 1) {
+                        sb.append(";");
+                    }
+                }
+
+                bw.write(sb.toString());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving students to file: " + e.getMessage());
+        }
+    }
+
+    public static void loadStudents() {
+        File file = new File(STUDENT_FILE);
+        if (!file.exists()) {
+            return; // Pehli dafa run ho raha hai, koi purana data nahi
+        }
+
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+
+                String[] parts = line.split("\\|", 2);
+                String name = parts[0].trim();
+                if (name.isEmpty()) continue;
+
+                Student s = new Student(name);
+
+                if (parts.length == 2 && !parts[1].trim().isEmpty()) {
+                    String[] dishNames = parts[1].split(";");
+                    for (String dn : dishNames) {
+                        if (!dn.trim().isEmpty()) {
+                            s.addDishToOrder(dn.trim());
+                        }
+                    }
+                }
+
+                studentList.add(s);
+            }
+            System.out.println("Loaded " + studentList.size() + " student record(s) from file.");
+        } catch (IOException e) {
+            System.out.println("Error loading students from file: " + e.getMessage());
+        }
+    }
+}
