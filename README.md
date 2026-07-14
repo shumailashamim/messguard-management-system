@@ -34,8 +34,8 @@ MessGuard Hostel Management System is a Java-based console application developed
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/MessGuard-Hostel-Management-System.git
-   ```
+   git clone https://github.com/shumailashamim/messguard-management-system.git
+```
 
 2. Open the project in NetBeans, IntelliJ IDEA, or Eclipse.
 
